@@ -162,6 +162,12 @@ export default function FoodPage() {
             onClose={() => setPaymentOpen(false)}
             amount={cartTotal + 49} /* +₱49 delivery fee */
             serviceLabel={`Food Delivery — ${selectedRestaurant.name}`}
+            serviceType="food"
+            details={{
+              pickup: selectedRestaurant.name,
+              dropoff: 'Customer Location',
+              items: cartCount
+            }}
           />
         </>
       ) : (

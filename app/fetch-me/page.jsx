@@ -296,6 +296,12 @@ export default function FetchMePage() {
         onClose={() => setPaymentOpen(false)}
         amount={parseFloat(vehicles.find(v => v.id === selectedVehicle)?.price.replace('₱', '').replace(',', '') || 0)}
         serviceLabel={`Fetch Me — ${vehicles.find(v => v.id === selectedVehicle)?.name}`}
+        serviceType="fetch_me"
+        details={{
+          pickup: 'SM City Butuan (Current Location)',
+          dropoff: destination?.display_name || '',
+          vehicle: vehicles.find(v => v.id === selectedVehicle)?.name
+        }}
       />
 
       <style jsx>{`

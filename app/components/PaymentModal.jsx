@@ -1,10 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { X, Banknote, CreditCard, Wallet, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { supabase } from '../../lib/supabase';
 
 const WALLET_BALANCE = 1250.00; // TODO: pull from Supabase/global state
 
-export default function PaymentModal({ isOpen, onClose, amount, serviceLabel }) {
+export default function PaymentModal({ isOpen, onClose, amount, serviceLabel, serviceType = 'fetch_me', details = {} }) {
+  const { user } = useUser();
   const [selectedMethod, setSelectedMethod] = useState('cash');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
@@ -37,9 +40,27 @@ export default function PaymentModal({ isOpen, onClose, amount, serviceLabel }) 
   const handlePay = async () => {
     if (insufficientWallet) return;
     setStep('processing');
-    // Simulate network call
-    await new Promise(r => setTimeout(r, 1800));
-    setStep('success');
+    
+    try {
+      if (user) {
+        // Insert into Supabase
+        const { error } = await supabase.from('jobs').insert({
+          user_id: user.id,
+          type: serviceType,
+          status: 'pending',
+          details: { ...details, amount, title: serviceLabel, method: selectedMethod }
+        });
+        if (error) throw error;
+      } else {
+        // Simulate network call if not signed in (for testing without auth)
+        await new Promise(r => setTimeout(r, 1800));
+      }
+      setStep('success');
+    } catch (error) {
+      console.error('Error inserting job:', error);
+      alert('Failed to process booking. Please try again.');
+      setStep('select');
+    }
   };
 
   const formatCard = (val) => {

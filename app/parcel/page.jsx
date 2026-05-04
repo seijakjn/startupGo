@@ -100,6 +100,11 @@ export default function ParcelPage() {
         onClose={() => setPaymentOpen(false)}
         amount={price}
         serviceLabel={`Parcel Delivery — ${deliveryType === 'sameday' ? 'Same Day' : 'Scheduled'}`}
+        serviceType="parcel"
+        details={{
+          pickup: 'SM City Butuan',
+          dropoff: 'Destination'
+        }}
       />
     </div>
   );

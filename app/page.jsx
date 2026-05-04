@@ -1,8 +1,55 @@
-import React from 'react';
-import { Car, Utensils, Package, Key, ArrowRight, Activity, Clock } from 'lucide-react';
+'use client';
+import React, { useState, useEffect } from 'react';
+import { Car, Utensils, Package, Key, ArrowRight, Activity, Clock, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
+  const { user } = useUser();
+  const [activeJob, setActiveJob] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Fetch user's active job
+    const fetchActiveJob = async () => {
+      const { data } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'accepted', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (data) setActiveJob(data);
+    };
+
+    fetchActiveJob();
+
+    // Subscribe to realtime updates for user's jobs
+    const channel = supabase
+      .channel('user_jobs')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'jobs', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const newJob = payload.new;
+          if (['pending', 'accepted', 'in_progress'].includes(newJob.status)) {
+            setActiveJob(newJob);
+          } else {
+            // Completed or cancelled
+            if (activeJob?.id === newJob.id) setActiveJob(null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, activeJob?.id]);
   const services = [
     { title: 'Fetch Me', desc: 'On-demand ride service', icon: Car, path: '/fetch-me', color: 'var(--color-primary)' },
     { title: 'Food Delivery', desc: 'Order from local restaurants', icon: Utensils, path: '/food', color: '#f59e0b' },
@@ -44,29 +91,48 @@ export default function Home() {
       </div>
 
       {/* Active Service Status Tracker */}
-      <h3 className="text-headline-sm" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Activity size={20} color="var(--color-primary)" />
-        Active Service
-      </h3>
-      <div className="card shadow-level-1" style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '4px solid var(--color-primary)' }}>
-        <div style={{ 
-          width: '48px', height: '48px', borderRadius: '50%', 
-          backgroundColor: 'var(--color-surface-container)', 
-          display: 'flex', alignItems: 'center', justifyContent: 'center' 
-        }}>
-          <Utensils size={24} color="var(--color-primary)" />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div className="text-label-lg">Food Delivery - Jollibee</div>
-          <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>Preparing your order...</div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-          <div className="chip" style={{ backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }}>In Progress</div>
-          <div className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={12} /> Est. 15 mins
+      {activeJob && (
+        <>
+          <h3 className="text-headline-sm" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={20} color="var(--color-primary)" />
+            Active Service
+          </h3>
+          <div className="card shadow-level-1" style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '4px solid var(--color-primary)', animation: 'slideDown 0.3s ease' }}>
+            <div style={{ 
+              width: '48px', height: '48px', borderRadius: '50%', 
+              backgroundColor: 'var(--color-surface-container)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center' 
+            }}>
+              {activeJob.type === 'food' ? <Utensils size={24} color="var(--color-primary)" /> : 
+               activeJob.type === 'parcel' ? <Package size={24} color="var(--color-primary)" /> : 
+               <Car size={24} color="var(--color-primary)" />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="text-label-lg">{activeJob.details?.title || 'Your Request'}</div>
+              <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
+                {activeJob.status === 'pending' ? 'Looking for a rider...' : 
+                 activeJob.status === 'accepted' ? 'Rider has accepted and is on the way!' : 
+                 'Job is in progress...'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+              <div className="chip" style={{ 
+                backgroundColor: activeJob.status === 'pending' ? 'var(--color-surface-container-highest)' : 'var(--color-primary-container)', 
+                color: activeJob.status === 'pending' ? 'var(--color-on-surface)' : 'var(--color-on-primary-container)' 
+              }}>
+                {activeJob.status === 'pending' ? 'Pending' : 
+                 activeJob.status === 'accepted' ? 'Accepted' : 'In Progress'}
+              </div>
+              <div className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {activeJob.status !== 'pending' && <CheckCircle2 size={12} color="var(--color-primary)" />}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+          <style jsx>{`
+            @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+          `}</style>
+        </>
+      )}
 
       <h3 className="text-headline-sm" style={{ marginBottom: '16px' }}>Core Services</h3>
       

@@ -1,20 +1,52 @@
 'use client';
-import React from 'react';
-import { Activity, Car, Utensils, Package, TrendingUp, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Activity, Car, Utensils, Package, TrendingUp, Users, XCircle, RefreshCcw } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 export default function AdminDashboard() {
-  const stats = [
-    { label: 'Active Rides', value: '24', icon: Car, color: '#3b82f6', trend: '+12%' },
-    { label: 'Food Orders', value: '56', icon: Utensils, color: '#f59e0b', trend: '+5%' },
-    { label: 'Pending Parcels', value: '18', icon: Package, color: '#10b981', trend: '-2%' },
-    { label: 'Total Users', value: '1,204', icon: Users, color: '#8b5cf6', trend: '+24%' },
-  ];
+  const [jobs, setJobs] = useState([]);
 
-  const recentActivity = [
-    { id: 1, type: 'Fetch Me', user: 'Maria Santos', status: 'In Transit', time: '2 mins ago', amount: '₱120.00' },
-    { id: 2, type: 'Food', user: 'Juan Dela Cruz', status: 'Preparing', time: '5 mins ago', amount: '₱350.00' },
-    { id: 3, type: 'Parcel', user: 'Ana Reyes', status: 'Assigned', time: '12 mins ago', amount: '₱80.00' },
-    { id: 4, type: 'Food', user: 'Mark Bautista', status: 'Delivered', time: '18 mins ago', amount: '₱420.00' },
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const { data } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (data) setJobs(data);
+    };
+
+    fetchJobs();
+
+    const channel = supabase
+      .channel('admin_jobs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setJobs(prev => [payload.new, ...prev].slice(0, 20));
+        } else if (payload.eventType === 'UPDATE') {
+          setJobs(prev => prev.map(j => j.id === payload.new.id ? payload.new : j));
+        }
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, []);
+
+  const handleCancelJob = async (id) => {
+    if (!confirm('Are you sure you want to cancel this job? This will simulate reimbursing the user and rider.')) return;
+    await supabase.from('jobs').update({ status: 'cancelled' }).eq('id', id);
+  };
+
+  const handleReassignJob = async (id) => {
+    if (!confirm('Reassign this job? It will be put back into the pending pool for another rider.')) return;
+    await supabase.from('jobs').update({ status: 'pending', rider_id: null }).eq('id', id);
+  };
+
+  const stats = [
+    { label: 'Active Jobs', value: jobs.filter(j => ['accepted', 'in_progress'].includes(j.status)).length.toString(), icon: Car, color: '#3b82f6', trend: '+12%' },
+    { label: 'Pending Requests', value: jobs.filter(j => j.status === 'pending').length.toString(), icon: Utensils, color: '#f59e0b', trend: '+5%' },
+    { label: 'Completed Today', value: jobs.filter(j => j.status === 'completed').length.toString(), icon: Package, color: '#10b981', trend: '-2%' },
+    { label: 'Cancelled', value: jobs.filter(j => j.status === 'cancelled').length.toString(), icon: Users, color: '#f87171', trend: '+1%' },
   ];
 
   return (
@@ -61,29 +93,50 @@ export default function AdminDashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: 'var(--color-surface-container-low)' }}>
               <tr>
-                <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>Service</th>
-                <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>User</th>
+                <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>Type</th>
+                <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>Details</th>
                 <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>Status</th>
                 <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>Amount</th>
                 <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>Time</th>
+                <th style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '600', color: 'var(--color-on-surface-variant)' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {recentActivity.map((activity) => (
-                <tr key={activity.id} style={{ borderBottom: '1px solid var(--color-surface-container-highest)' }}>
-                  <td style={{ padding: '16px 24px', fontWeight: '500' }}>{activity.type}</td>
-                  <td style={{ padding: '16px 24px', color: 'var(--color-on-surface-variant)' }}>{activity.user}</td>
+              {jobs.length === 0 ? (
+                <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--color-on-surface-variant)' }}>No active jobs yet.</td></tr>
+              ) : jobs.map((job) => (
+                <tr key={job.id} style={{ borderBottom: '1px solid var(--color-surface-container-highest)' }}>
+                  <td style={{ padding: '16px 24px', fontWeight: '500', textTransform: 'capitalize' }}>{job.type.replace('_', ' ')}</td>
+                  <td style={{ padding: '16px 24px', color: 'var(--color-on-surface-variant)' }}>{job.details?.title}</td>
                   <td style={{ padding: '16px 24px' }}>
                     <span style={{ 
                       padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600',
-                      backgroundColor: activity.status === 'Delivered' ? 'var(--color-primary-container)' : 'var(--color-surface-container)',
-                      color: activity.status === 'Delivered' ? 'var(--color-on-primary-container)' : 'var(--color-on-surface)'
+                      backgroundColor: ['completed'].includes(job.status) ? 'var(--color-primary-container)' : 
+                                      ['cancelled'].includes(job.status) ? 'var(--color-error-container)' : 'var(--color-surface-container)',
+                      color: ['completed'].includes(job.status) ? 'var(--color-on-primary-container)' : 
+                             ['cancelled'].includes(job.status) ? 'var(--color-error)' : 'var(--color-on-surface)'
                     }}>
-                      {activity.status}
+                      {job.status}
                     </span>
                   </td>
-                  <td style={{ padding: '16px 24px', fontWeight: '600' }}>{activity.amount}</td>
-                  <td style={{ padding: '16px 24px', color: 'var(--color-on-surface-variant)', fontSize: '14px' }}>{activity.time}</td>
+                  <td style={{ padding: '16px 24px', fontWeight: '600' }}>₱{job.details?.amount || '0.00'}</td>
+                  <td style={{ padding: '16px 24px', color: 'var(--color-on-surface-variant)', fontSize: '14px' }}>
+                    {new Date(job.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td style={{ padding: '16px 24px', display: 'flex', gap: '8px' }}>
+                    {['pending', 'accepted', 'in_progress'].includes(job.status) && (
+                      <>
+                        <button onClick={() => handleCancelJob(job.id)} title="Cancel Job & Reimburse" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-error)' }}>
+                          <XCircle size={18} />
+                        </button>
+                        {['accepted', 'in_progress'].includes(job.status) && (
+                          <button onClick={() => handleReassignJob(job.id)} title="Reassign to new Rider" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)' }}>
+                            <RefreshCcw size={18} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
