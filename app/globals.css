@@ -73,12 +73,17 @@
   --color-surface-container-highest: #475569;
   
   --color-on-surface-variant: #94a3b8;
+  --color-outline: #64748b;
   --color-outline-variant: #334155;
   
   --color-primary: #34d399;
   --color-primary-container: #065f46;
   --color-on-primary-container: #d1fae5;
   
+  --color-error: #f87171;
+  --color-error-container: #450a0a;
+  --color-on-error-container: #fca5a5;
+
   --color-inverse-surface: #f8fafc;
   --color-inverse-on-surface: #0f172a;
 }
@@ -106,6 +111,18 @@ a {
   box-sizing: border-box;
 }
 
+/* Ensure all form inputs inherit theme colors — prevents black text in dark mode */
+input, textarea, select {
+  color: var(--color-on-surface);
+  background-color: transparent;
+  font-family: inherit;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--color-on-surface-variant);
+  opacity: 1;
+}
+
 /* Typography Utility Classes */
 .text-headline-lg { font-size: 32px; font-weight: 700; line-height: 40px; letter-spacing: -0.02em; }
 .text-headline-md { font-size: 24px; font-weight: 700; line-height: 32px; letter-spacing: -0.01em; }
@@ -130,6 +147,11 @@ a {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  color: var(--color-on-surface);
+}
+
+[data-theme='dark'] .glass {
+  background: rgba(30, 41, 59, 0.92);
 }
 
 .card {
