@@ -1,10 +1,11 @@
-"use client";
+'use client';
 import { useState, useEffect } from 'react';
 import './globals.css';
 import 'leaflet/dist/leaflet.css';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import Sidebar from './components/Sidebar';
+import { ClerkProvider } from '@clerk/nextjs';
 
 export default function RootLayout({ children }) {
   const [theme, setTheme] = useState('light');
@@ -23,24 +24,26 @@ export default function RootLayout({ children }) {
   };
 
   return (
-    <html lang="en" data-theme={theme}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet" />
-      </head>
-      <body>
-        <div className="app-container">
-          <Sidebar />
-          <main className="main-content">
-            <Header toggleTheme={toggleTheme} theme={theme} />
-            <div className="content-area">
-              {children}
-            </div>
-          </main>
-          <BottomNav />
-        </div>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" data-theme={theme}>
+        <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet" />
+        </head>
+        <body>
+          <div className="app-container">
+            <Sidebar />
+            <main className="main-content">
+              <Header toggleTheme={toggleTheme} theme={theme} />
+              <div className="content-area">
+                {children}
+              </div>
+            </main>
+            <BottomNav />
+          </div>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
