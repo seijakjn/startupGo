@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { MapPin, Truck, Calendar, Search, Package as PackageIcon, CheckCircle, Clock } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
@@ -27,7 +27,7 @@ function useDebounce(value, delay) {
   return debounced;
 }
 
-export default function ParcelPage() {
+function ParcelContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('send'); // 'send' or 'track'
   const [deliveryType, setDeliveryType] = useState('sameday');
@@ -503,5 +503,17 @@ export default function ParcelPage() {
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
     </div>
+  );
+}
+
+export default function ParcelPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+        Loading Parcel Service...
+      </div>
+    }>
+      <ParcelContent />
+    </Suspense>
   );
 }
