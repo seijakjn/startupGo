@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
     const { role, subcategory } = await req.json();
 
-    if (role !== 'rider') {
+    if (role !== 'rider' && role !== 'admin') {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 

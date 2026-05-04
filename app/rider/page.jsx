@@ -43,16 +43,12 @@ export default function RiderDashboard() {
         { event: '*', schema: 'public', table: 'jobs' },
         (payload) => {
           const newJob = payload.new;
-          const oldJob = payload.old;
-
           if (payload.eventType === 'INSERT' && newJob.status === 'pending' && newJob.type === subcategory) {
             setJobs((prev) => [newJob, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            // Remove from pending if status changed
             if (newJob.status !== 'pending') {
               setJobs((prev) => prev.filter((j) => j.id !== newJob.id));
             }
-            // Update active job if it's ours
             if (newJob.rider_id === user.id && ['accepted', 'in_progress'].includes(newJob.status)) {
               setActiveJob(newJob);
             }
@@ -98,6 +94,27 @@ export default function RiderDashboard() {
         .single();
 
       if (error) throw error;
+
+      // Logic for Rider Earnings upon completion
+      if (newStatus === 'completed') {
+        const amount = parseFloat(activeJob.details?.amount || 0);
+        if (amount > 0) {
+          // Add to rider's wallet
+          await supabase.rpc('increment_wallet', { 
+            target_user_id: user.id, 
+            amount: amount 
+          });
+          
+          // Record earning transaction
+          await supabase.from('transactions').insert({
+            user_id: user.id,
+            amount: amount,
+            type: 'earning',
+            description: `Earned from Job: ${activeJob.details?.title || 'Delivery'}`
+          });
+        }
+      }
+
       if (['completed', 'cancelled'].includes(newStatus)) {
         setActiveJob(null);
       } else {

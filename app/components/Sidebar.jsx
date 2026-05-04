@@ -1,7 +1,7 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink } from './NavLink';
-import { Home, Car, Utensils, Package, Key, Wallet, LogOut, LogIn } from 'lucide-react';
+import { Home, Car, Utensils, Package, Key, Wallet, LogOut, LogIn, Shield } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 
@@ -9,15 +9,54 @@ const Sidebar = () => {
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const [freshRole, setFreshRole] = useState(null);
 
-  const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/fetch-me', label: 'Fetch Me', icon: Car },
-    { path: '/food', label: 'Food', icon: Utensils },
-    { path: '/parcel', label: 'Parcel', icon: Package },
-    { path: '/rental', label: 'Rental', icon: Key },
-    { path: '/wallet', label: 'Wallet', icon: Wallet },
-  ];
+  // Sync role from Clerk user object
+  useEffect(() => {
+    if (user?.publicMetadata?.role) {
+      setFreshRole(String(user.publicMetadata.role).toLowerCase());
+    } else if (isSignedIn) {
+      // If metadata is empty (common in client-side Clerk), fetch from our fresh API
+      fetch('/api/user/metadata')
+        .then(res => res.json())
+        .then(data => {
+          if (data.publicMetadata?.role) {
+            setFreshRole(String(data.publicMetadata.role).toLowerCase());
+          }
+        })
+        .catch(err => console.error('Error fetching metadata:', err));
+    }
+  }, [user, isSignedIn]);
+
+  const role = freshRole;
+  
+  const navItems = useMemo(() => {
+    if (!isLoaded) return [];
+
+    if (role === 'admin') {
+      return [
+        { path: '/admin', label: 'Admin Dashboard', icon: Shield },
+        { path: '/wallet', label: 'Wallet', icon: Wallet },
+      ];
+    } 
+    
+    if (role === 'rider') {
+      return [
+        { path: '/rider', label: 'Rider Dashboard', icon: Package },
+        { path: '/wallet', label: 'Wallet', icon: Wallet },
+      ];
+    }
+
+    // Default User view
+    return [
+      { path: '/', label: 'Home', icon: Home },
+      { path: '/fetch-me', label: 'Fetch Me', icon: Car },
+      { path: '/food', label: 'Food', icon: Utensils },
+      { path: '/parcel', label: 'Parcel', icon: Package },
+      { path: '/rental', label: 'Rental', icon: Key },
+      { path: '/wallet', label: 'Wallet', icon: Wallet },
+    ];
+  }, [isLoaded, role]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -29,13 +68,13 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" data-role={role || 'none'}>
       <div style={{ marginBottom: '40px', padding: '0 12px' }}>
         <h1 className="text-headline-md" style={{ color: 'var(--color-primary)' }}>Butuan Go</h1>
       </div>
       
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {navItems.map((item) => {
+        {isLoaded && navItems.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink 
@@ -98,8 +137,13 @@ const Sidebar = () => {
                 </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="text-label-md" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.fullName || user.username || 'User'}
+                <div className="text-label-md" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.fullName || user.username || 'User'}</span>
+                  {role && (
+                    <span style={{ fontSize: '10px', backgroundColor: 'var(--color-primary)', color: 'white', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase', flexShrink: 0 }}>
+                      {role}
+                    </span>
+                  )}
                 </div>
                 <div className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.primaryEmailAddress?.emailAddress || ''}

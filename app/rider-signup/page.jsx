@@ -12,6 +12,13 @@ export default function RiderSignupPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Auto-redirect if already a rider
+  React.useEffect(() => {
+    if (isLoaded && isSignedIn && user.publicMetadata?.role === 'rider') {
+      router.push('/rider');
+    }
+  }, [isLoaded, isSignedIn, user?.publicMetadata?.role, router]);
+
   const categories = [
     { id: 'fetch_me', label: 'Fetch Me Driver', icon: Car, color: 'var(--color-primary)' },
     { id: 'food', label: 'Food Delivery Rider', icon: Utensils, color: '#f59e0b' },
@@ -89,11 +96,14 @@ export default function RiderSignupPage() {
 
       if (!res.ok) throw new Error('Failed to update role');
 
+      // Small delay to allow Clerk metadata to propagate
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       // Reload user to ensure Clerk sees the new metadata
       await user.reload();
       
-      // Redirect to the rider dashboard
-      router.push('/rider');
+      // Force redirect
+      window.location.href = '/rider';
     } catch (error) {
       console.error(error);
       setIsSubmitting(false);

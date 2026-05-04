@@ -38,14 +38,14 @@ export default function RootLayout({ children }) {
         </head>
         <body>
           <div className="app-container">
-            {!(isAuthRoute || isAdminRoute) && <Sidebar />}
-            <main className="main-content" style={isAuthRoute || isAdminRoute ? { padding: 0 } : {}}>
-              {!(isAuthRoute || isAdminRoute) && <Header toggleTheme={toggleTheme} theme={theme} />}
-              <div className="content-area" style={isAuthRoute || isAdminRoute ? { padding: 0, height: '100%' } : {}}>
+            {!isAuthRoute && <Sidebar />}
+            <main className="main-content" style={isAuthRoute ? { padding: 0 } : {}}>
+              {!isAuthRoute && <Header toggleTheme={toggleTheme} theme={theme} />}
+              <div className="content-area" style={isAuthRoute ? { padding: 0, height: '100%' } : {}}>
                 {children}
               </div>
             </main>
-            {!(isAuthRoute || isAdminRoute) && <BottomNav />}
+            {!isAuthRoute && <BottomNav />}
           </div>
         </body>
       </html>

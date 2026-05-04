@@ -1,16 +1,31 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Car, Utensils, Package, Key, ArrowRight, Activity, Clock, CheckCircle2 } from 'lucide-react';
+import { Car, Utensils, Package, Key, ArrowRight, Activity, Clock, CheckCircle2, History, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const { user } = useUser();
+  const router = useRouter();
   const [activeJob, setActiveJob] = useState(null);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+
+    // Redirection logic for special roles
+    const role = user.publicMetadata?.role;
+    if (role === 'admin') {
+      router.push('/admin');
+      return;
+    }
+    if (role === 'rider') {
+      router.push('/rider');
+      return;
+    }
 
     // Fetch user's active job
     const fetchActiveJob = async () => {
@@ -26,7 +41,22 @@ export default function Home() {
       if (data) setActiveJob(data);
     };
 
+    // Fetch recent activity (transactions + completed jobs)
+    const fetchRecentActivity = async () => {
+      setLoadingHistory(true);
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (!error) setRecentActivity(data || []);
+      setLoadingHistory(false);
+    };
+
     fetchActiveJob();
+    fetchRecentActivity();
 
     // Subscribe to realtime updates for user's jobs
     const channel = supabase
@@ -39,7 +69,6 @@ export default function Home() {
           if (['pending', 'accepted', 'in_progress'].includes(newJob.status)) {
             setActiveJob(newJob);
           } else {
-            // Completed or cancelled
             if (activeJob?.id === newJob.id) setActiveJob(null);
           }
         }
@@ -49,7 +78,8 @@ export default function Home() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, activeJob?.id]);
+  }, [user, activeJob?.id, router]);
+
   const services = [
     { title: 'Fetch Me', desc: 'On-demand ride service', icon: Car, path: '/fetch-me', color: 'var(--color-primary)' },
     { title: 'Food Delivery', desc: 'Order from local restaurants', icon: Utensils, path: '/food', color: '#f59e0b' },
@@ -58,7 +88,7 @@ export default function Home() {
   ];
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '40px' }}>
       <div style={{ 
         background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%)',
         borderRadius: 'var(--rounded-xl)',
@@ -70,7 +100,7 @@ export default function Home() {
       }}>
         <div style={{ position: 'relative', zIndex: 1 }}>
           <h2 className="text-headline-lg" style={{ color: 'white', marginBottom: '8px' }}>Where to, Butuan?</h2>
-          <p className="text-body-lg" style={{ opacity: 0.9, marginBottom: '24px' }}>Your all-in-one mobility and delivery super app.</p>
+          <p className="text-body-lg" style={{ opacity: 0.9, marginBottom: '24px' }}>Your all-in-one super app.</p>
           <div className="glass" style={{ display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '12px 24px', borderRadius: 'var(--rounded-lg)', border: 'none' }}>
             <Car size={24} color="var(--color-primary)" />
             <div>
@@ -80,29 +110,19 @@ export default function Home() {
           </div>
         </div>
         <div style={{
-          position: 'absolute',
-          right: '-50px',
-          bottom: '-50px',
-          width: '200px',
-          height: '200px',
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.1)'
+          position: 'absolute', right: '-50px', bottom: '-50px', width: '200px', height: '200px',
+          borderRadius: '50%', background: 'rgba(255,255,255,0.1)'
         }} />
       </div>
 
-      {/* Active Service Status Tracker */}
       {activeJob && (
         <>
           <h3 className="text-headline-sm" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={20} color="var(--color-primary)" />
             Active Service
           </h3>
-          <div className="card shadow-level-1" style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '4px solid var(--color-primary)', animation: 'slideDown 0.3s ease' }}>
-            <div style={{ 
-              width: '48px', height: '48px', borderRadius: '50%', 
-              backgroundColor: 'var(--color-surface-container)', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center' 
-            }}>
+          <div className="card shadow-level-1" style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '4px solid var(--color-primary)' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--color-surface-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {activeJob.type === 'food' ? <Utensils size={24} color="var(--color-primary)" /> : 
                activeJob.type === 'parcel' ? <Package size={24} color="var(--color-primary)" /> : 
                <Car size={24} color="var(--color-primary)" />}
@@ -111,70 +131,71 @@ export default function Home() {
               <div className="text-label-lg">{activeJob.details?.title || 'Your Request'}</div>
               <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
                 {activeJob.status === 'pending' ? 'Looking for a rider...' : 
-                 activeJob.status === 'accepted' ? 'Rider has accepted and is on the way!' : 
-                 'Job is in progress...'}
+                 activeJob.status === 'accepted' ? 'Rider has accepted!' : 'In progress...'}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-              <div className="chip" style={{ 
-                backgroundColor: activeJob.status === 'pending' ? 'var(--color-surface-container-highest)' : 'var(--color-primary-container)', 
-                color: activeJob.status === 'pending' ? 'var(--color-on-surface)' : 'var(--color-on-primary-container)' 
-              }}>
-                {activeJob.status === 'pending' ? 'Pending' : 
-                 activeJob.status === 'accepted' ? 'Accepted' : 'In Progress'}
-              </div>
-              <div className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {activeJob.status !== 'pending' && <CheckCircle2 size={12} color="var(--color-primary)" />}
-              </div>
+            <div className="chip" style={{ backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }}>
+              {activeJob.status.toUpperCase()}
             </div>
           </div>
-          <style jsx>{`
-            @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-          `}</style>
         </>
       )}
 
-      <h3 className="text-headline-sm" style={{ marginBottom: '16px' }}>Core Services</h3>
-      
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', 
-        gap: '16px',
-        marginBottom: '32px'
-      }}>
-        {services.map((service, idx) => {
-          const Icon = service.icon;
-          return (
-            <Link href={service.path} key={idx} style={{ textDecoration: 'none' }}>
-              <div className="card shadow-level-1" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ 
-                  width: '48px', height: '48px', 
-                  borderRadius: 'var(--rounded-lg)', 
-                  backgroundColor: `${service.color}15`, 
-                  color: service.color,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: '16px'
-                }}>
-                  <Icon size={24} />
-                </div>
-                <div className="text-label-lg" style={{ marginBottom: '4px', color: 'var(--color-on-surface)' }}>{service.title}</div>
-                <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)', flex: 1 }}>{service.desc}</div>
-                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', color: 'var(--color-primary)' }}>
-                  <ArrowRight size={16} />
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      <h3 className="text-headline-sm" style={{ marginBottom: '16px' }}>Local Offers</h3>
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: 'var(--rounded)', backgroundColor: 'var(--color-surface-container)' }}></div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px' }}>
         <div>
-          <div className="chip" style={{ marginBottom: '8px' }}>Promo</div>
-          <div className="text-label-lg">50% off your first Fetch Me ride!</div>
-          <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>Valid until May 31 for Butuan City trips.</div>
+          <h3 className="text-headline-sm" style={{ marginBottom: '16px' }}>Services</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '32px' }}>
+            {services.map((service, idx) => (
+              <Link href={service.path} key={idx} style={{ textDecoration: 'none' }}>
+                <div className="card shadow-level-1" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: 'var(--rounded)', backgroundColor: `${service.color}15`, color: service.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+                    <service.icon size={20} />
+                  </div>
+                  <div className="text-label-lg" style={{ marginBottom: '4px', color: 'var(--color-on-surface)' }}>{service.title}</div>
+                  <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>{service.desc}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 className="text-headline-sm">Recent Activity</h3>
+            <Link href="/wallet" style={{ fontSize: '13px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: '600' }}>See All</Link>
+          </div>
+          <div className="card shadow-level-1" style={{ padding: '0', overflow: 'hidden' }}>
+            {loadingHistory ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-on-surface-variant)' }}>Loading...</div>
+            ) : recentActivity.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--color-on-surface-variant)', fontStyle: 'italic' }}>
+                <Clock size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                <div>No recent activity</div>
+              </div>
+            ) : (
+              recentActivity.map((tx, idx) => (
+                <div key={tx.id} style={{ 
+                  display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', 
+                  borderBottom: idx < recentActivity.length - 1 ? '1px solid var(--color-surface-container-highest)' : 'none' 
+                }}>
+                  <div style={{ 
+                    width: '32px', height: '32px', borderRadius: '50%', 
+                    backgroundColor: tx.type === 'payment' ? 'var(--color-error-container)' : 'var(--color-primary-container)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {tx.type === 'payment' ? <ArrowUpRight size={16} color="var(--color-error)" /> : <ArrowDownLeft size={16} color="var(--color-primary)" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="text-label-md" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.description}</div>
+                    <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>{new Date(tx.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <div className="text-label-md" style={{ color: tx.type === 'payment' ? 'var(--color-error)' : 'var(--color-primary)' }}>
+                    {tx.type === 'payment' ? '-' : '+'}₱{Math.abs(tx.amount).toFixed(0)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

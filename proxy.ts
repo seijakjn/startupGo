@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 // Public routes — no auth required
@@ -10,38 +10,59 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 // Admin-only routes
-const isAdminRoute = createRouteMatcher(['/admin(.*)']);
+const isAdminRoute = createRouteMatcher(['/admin', '/admin/(.*)']);
 
 // Rider-only routes
-const isRiderRoute = createRouteMatcher(['/rider(.*)']);
+const isRiderRoute = createRouteMatcher(['/rider', '/rider/(.*)']);
+
+// User-only service routes
+const isUserOnlyRoute = createRouteMatcher([
+  '/fetch-me(.*)',
+  '/food(.*)',
+  '/parcel(.*)',
+  '/rental(.*)',
+]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // Protect all non-public routes
-  if (!isPublicRoute(req)) {
-    await auth.protect();
-  }
+  const { userId } = await auth();
 
-  // Extra gate for /admin — must have role: 'admin' in publicMetadata
-  if (isAdminRoute(req)) {
-    const { userId, sessionClaims } = await auth();
+  // 1. Protect all non-public routes
+  if (!isPublicRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL('/sign-in', req.url));
     }
-    const role = (sessionClaims?.publicMetadata as { role?: string })?.role;
-    if (role !== 'admin') {
+  }
+
+  // 2. Role-based routing logic (Fetch fresh metadata)
+  if (userId) {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const role = (user.publicMetadata?.role as string)?.toLowerCase();
+
+    // Prevent Riders/Admins from accessing User Service routes
+    if (isUserOnlyRoute(req)) {
+      if (role === 'rider') {
+        return NextResponse.redirect(new URL('/rider', req.url));
+      }
+      if (role === 'admin') {
+        return NextResponse.redirect(new URL('/admin', req.url));
+      }
+    }
+
+    // Protect Admin Dashboard
+    if (isAdminRoute(req) && role !== 'admin') {
       return NextResponse.redirect(new URL('/?error=admin_access_denied', req.url));
     }
-  }
 
-  // Extra gate for /rider — must have role: 'rider' in publicMetadata
-  if (isRiderRoute(req)) {
-    const { userId, sessionClaims } = await auth();
-    if (!userId) {
-      return NextResponse.redirect(new URL('/sign-in', req.url));
-    }
-    const role = (sessionClaims?.publicMetadata as { role?: string })?.role;
-    if (role !== 'rider') {
+    // Protect Rider Dashboard
+    if (isRiderRoute(req) && role !== 'rider') {
       return NextResponse.redirect(new URL('/rider-signup', req.url));
+    }
+    
+    // Auto-redirect from Home page based on role
+    if (req.nextUrl.pathname === '/') {
+      if (role === 'admin') return NextResponse.redirect(new URL('/admin', req.url));
+      if (role === 'rider') return NextResponse.redirect(new URL('/rider', req.url));
     }
   }
 });
