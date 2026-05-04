@@ -1,5 +1,5 @@
 import React from 'react';
-import { Car, Utensils, Package, Key, ArrowRight } from 'lucide-react';
+import { Car, Utensils, Package, Key, ArrowRight, Activity, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -41,6 +41,31 @@ export default function Home() {
           borderRadius: '50%',
           background: 'rgba(255,255,255,0.1)'
         }} />
+      </div>
+
+      {/* Active Service Status Tracker */}
+      <h3 className="text-headline-sm" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Activity size={20} color="var(--color-primary)" />
+        Active Service
+      </h3>
+      <div className="card shadow-level-1" style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '4px solid var(--color-primary)' }}>
+        <div style={{ 
+          width: '48px', height: '48px', borderRadius: '50%', 
+          backgroundColor: 'var(--color-surface-container)', 
+          display: 'flex', alignItems: 'center', justifyContent: 'center' 
+        }}>
+          <Utensils size={24} color="var(--color-primary)" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="text-label-lg">Food Delivery - Jollibee</div>
+          <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>Preparing your order...</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          <div className="chip" style={{ backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }}>In Progress</div>
+          <div className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Clock size={12} /> Est. 15 mins
+          </div>
+        </div>
       </div>
 
       <h3 className="text-headline-sm" style={{ marginBottom: '16px' }}>Core Services</h3>
