@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { MapPin, Navigation, Car, Users, Search, Loader2, X } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
+import { supabase } from '../../lib/supabase';
 
 // Dynamically import the custom Map component with SSR disabled
 const ButuanMap = dynamic(() => import('../components/ButuanMap'), { 
@@ -33,9 +34,19 @@ export default function FetchMePage() {
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [nearbyRiders, setNearbyRiders] = useState([]);
   const wrapperRef = useRef(null);
 
   const debouncedQuery = useDebounce(searchQuery, 400);
+
+  // Fetch Nearby Riders
+  useEffect(() => {
+    const fetchRiders = async () => {
+      const { data } = await supabase.from('rider_locations').select('lat, lon').limit(20);
+      if (data) setNearbyRiders(data);
+    };
+    fetchRiders();
+  }, []);
 
   // Fetch suggestions whenever the debounced query changes
   useEffect(() => {
@@ -116,7 +127,7 @@ export default function FetchMePage() {
       <div className="shadow-level-1" style={{ position: 'relative', height: '300px', borderRadius: 'var(--rounded-lg)', overflow: 'visible', marginBottom: '24px', zIndex: 10 }}>
         {/* Map — needs its own clip */}
         <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--rounded-lg)', overflow: 'hidden', zIndex: 1 }}>
-          <ButuanMap center={mapCenter} destination={destination} DEFAULT_CENTER={DEFAULT_CENTER} />
+          <ButuanMap center={mapCenter} destination={destination} DEFAULT_CENTER={DEFAULT_CENTER} riders={nearbyRiders} />
         </div>
 
         {/* Floating Search Bar + Dropdown */}

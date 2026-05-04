@@ -107,7 +107,7 @@ export default function WalletPage() {
       <div style={{ 
         background: 'linear-gradient(135deg, var(--color-inverse-surface) 0%, #0f172a 100%)',
         borderRadius: 'var(--rounded-xl)',
-        padding: '32px',
+        padding: 'clamp(20px, 5vw, 32px)',
         color: 'white',
         marginBottom: '32px',
         position: 'relative',
@@ -117,7 +117,7 @@ export default function WalletPage() {
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
             <div className="text-body-sm" style={{ opacity: 0.8, marginBottom: '8px' }}>Available Balance</div>
-            <div className="text-headline-lg" style={{ fontSize: '40px', letterSpacing: '-0.03em' }}>
+            <div className="text-headline-lg" style={{ fontSize: 'clamp(32px, 8vw, 40px)', letterSpacing: '-0.03em' }}>
               ₱{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
@@ -130,9 +130,6 @@ export default function WalletPage() {
             >
               <Plus size={20} /> Top Up
             </button>
-            <button className="btn" style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', gap: '8px', border: 'none', cursor: 'pointer', height: '48px' }}>
-              <ArrowUpRight size={20} /> Transfer
-            </button>
           </div>
         </div>
         <div style={{ position: 'absolute', right: '-20px', top: '-20px', width: '150px', height: '150px', borderRadius: '50%', background: 'radial-gradient(circle, var(--color-primary) 0%, transparent 70%)', opacity: 0.3 }} />
@@ -141,8 +138,8 @@ export default function WalletPage() {
       {showTopup && (
         <div className="card shadow-level-2" style={{ marginBottom: '32px', padding: '24px', animation: 'slideDown 0.3s ease-out' }}>
           <h3 className="text-label-lg" style={{ marginBottom: '16px' }}>Enter Top-up Amount</h3>
-          <form onSubmit={handleTopup} style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
+          <form onSubmit={handleTopup} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ position: 'relative', flex: '1 1 200px' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-on-surface-variant)' }}>₱</span>
               <input 
                 type="number" 
@@ -153,25 +150,28 @@ export default function WalletPage() {
                 style={{ 
                   width: '100%', padding: '12px 12px 12px 28px', borderRadius: 'var(--rounded)', 
                   border: '1px solid var(--color-outline)', backgroundColor: 'var(--color-surface)',
-                  fontSize: '16px'
+                  fontSize: '16px', color: 'var(--color-on-surface)'
                 }}
               />
             </div>
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
-              disabled={isSubmitting || !topupAmount}
-              style={{ padding: '0 24px' }}
-            >
-              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Confirm'}
-            </button>
-            <button 
-              type="button" 
-              className="btn btn-secondary" 
-              onClick={() => setShowTopup(false)}
-            >
-              Cancel
-            </button>
+            <div style={{ display: 'flex', gap: '12px', flex: '1 1 200px' }}>
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={isSubmitting || !topupAmount}
+                style={{ flex: 1, height: '48px' }}
+              >
+                {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Confirm'}
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setShowTopup(false)}
+                style={{ flex: 1, height: '48px' }}
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       )}

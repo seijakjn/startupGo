@@ -163,13 +163,32 @@ export default function AdminDashboard() {
                   {jobs.map((job) => (
                     <tr key={job.id} style={{ borderBottom: '1px solid var(--color-surface-container-highest)' }}>
                       <td style={{ padding: '16px 24px', textTransform: 'capitalize' }}>{job.type}</td>
-                      <td style={{ padding: '16px 24px' }}>{job.details?.title}</td>
                       <td style={{ padding: '16px 24px' }}>
-                        <span className="chip" style={{ backgroundColor: job.status === 'completed' ? 'var(--color-primary-container)' : 'var(--color-surface-container)' }}>
+                        <div style={{ fontWeight: '600' }}>{job.details?.title}</div>
+                        {job.type === 'rental' && (
+                          <div style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', marginTop: '4px' }}>
+                            {job.details?.duration} day(s) · Pickup: {job.details?.pickupDate} {job.details?.pickupTime} · Contact: {job.details?.contactNumber}
+                          </div>
+                        )}
+                        {job.type === 'parcel' && (
+                          <div style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', marginTop: '4px' }}>
+                            From: {job.details?.pickup?.substring(0, 30)}... · To: {job.details?.dropoff?.substring(0, 30)}...
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <span className="chip" style={{ 
+                          backgroundColor: job.status === 'completed' ? 'var(--color-primary-container)' : 
+                                         job.status === 'cancelled' ? 'var(--color-error-container)' : 
+                                         'var(--color-surface-container)',
+                          color: job.status === 'completed' ? 'var(--color-primary)' : 
+                                 job.status === 'cancelled' ? 'var(--color-error)' : 
+                                 'var(--color-on-surface)'
+                        }}>
                           {job.status}
                         </span>
                       </td>
-                      <td style={{ padding: '16px 24px', fontWeight: '600' }}>₱{job.details?.amount}</td>
+                      <td style={{ padding: '16px 24px', fontWeight: '700', color: 'var(--color-primary)' }}>₱{job.details?.amount}</td>
                       <td style={{ padding: '16px 24px' }}>
                         {['pending', 'accepted'].includes(job.status) && (
                           <button onClick={() => handleCancelJob(job.id)} style={{ background: 'none', border: 'none', color: 'var(--color-error)', cursor: 'pointer' }}>

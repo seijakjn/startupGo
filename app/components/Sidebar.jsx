@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink } from './NavLink';
-import { Home, Car, Utensils, Package, Key, Wallet, LogOut, LogIn, Shield } from 'lucide-react';
+import { Home, Car, Utensils, Package, Key, Wallet, LogOut, LogIn, Shield, X } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
@@ -68,9 +68,16 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="sidebar" data-role={role || 'none'}>
-      <div style={{ marginBottom: '40px', padding: '0 12px' }}>
-        <h1 className="text-headline-md" style={{ color: 'var(--color-primary)' }}>Butuan Go</h1>
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`} data-role={role || 'none'}>
+      <div style={{ marginBottom: '40px', padding: '0 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 className="text-headline-md" style={{ color: 'var(--color-primary)', margin: 0 }}>Butuan Go</h1>
+        <button 
+          className="show-on-mobile" 
+          onClick={onClose}
+          style={{ background: 'none', border: 'none', color: 'var(--color-on-surface-variant)', cursor: 'pointer', padding: '8px' }}
+        >
+          <X size={24} />
+        </button>
       </div>
       
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

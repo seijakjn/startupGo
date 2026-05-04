@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import './globals.css';
 import 'leaflet/dist/leaflet.css';
 import Header from './components/Header';
-import BottomNav from './components/BottomNav';
 import Sidebar from './components/Sidebar';
 import { ClerkProvider } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 
 export default function RootLayout({ children }) {
   const [theme, setTheme] = useState('light');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -26,7 +26,11 @@ export default function RootLayout({ children }) {
 
   const pathname = usePathname();
   const isAuthRoute = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
-  const isAdminRoute = pathname?.startsWith('/admin');
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
 
   return (
     <ClerkProvider>
@@ -38,14 +42,25 @@ export default function RootLayout({ children }) {
         </head>
         <body>
           <div className="app-container">
-            {!isAuthRoute && <Sidebar />}
+            {!isAuthRoute && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />}
+            {!isAuthRoute && (
+              <div 
+                className={`sidebar-overlay ${isSidebarOpen ? 'visible' : ''}`} 
+                onClick={() => setIsSidebarOpen(false)} 
+              />
+            )}
             <main className="main-content" style={isAuthRoute ? { padding: 0 } : {}}>
-              {!isAuthRoute && <Header toggleTheme={toggleTheme} theme={theme} />}
+              {!isAuthRoute && (
+                <Header 
+                  toggleTheme={toggleTheme} 
+                  theme={theme} 
+                  toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
+                />
+              )}
               <div className="content-area" style={isAuthRoute ? { padding: 0, height: '100%' } : {}}>
                 {children}
               </div>
             </main>
-            {!isAuthRoute && <BottomNav />}
           </div>
         </body>
       </html>

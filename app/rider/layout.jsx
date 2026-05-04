@@ -1,13 +1,14 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { Power, Map, CreditCard, LogOut, Loader2, Car, Utensils, Package } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Power, Map, CreditCard, LogOut, Loader2, Navigation, Package } from 'lucide-react';
 
 export default function RiderLayout({ children }) {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [isOnline, setIsOnline] = useState(false);
   const [theme, setTheme] = useState('light');
@@ -24,9 +25,6 @@ export default function RiderLayout({ children }) {
 
   if (!isLoaded) return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Loader2 size={32} className="animate-spin" color="var(--color-primary)" /></div>;
 
-  const subcategory = user?.publicMetadata?.subcategory;
-  const SubCategoryIcon = subcategory === 'food' ? Utensils : subcategory === 'parcel' ? Package : Car;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--color-background)' }}>
       {/* Header */}
@@ -39,12 +37,12 @@ export default function RiderLayout({ children }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <SubCategoryIcon size={24} color="white" />
+            <Package size={24} color="white" />
           </div>
           <div>
             <div className="text-headline-sm" style={{ margin: 0 }}>Driver Portal</div>
             <div className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
-              {subcategory === 'fetch_me' ? 'Fetch Me' : subcategory === 'food' ? 'Food Delivery' : 'Parcel Delivery'}
+              All Services
             </div>
           </div>
         </div>
@@ -108,14 +106,29 @@ export default function RiderLayout({ children }) {
         display: 'flex', justifyContent: 'space-around', alignItems: 'center',
         padding: '0 16px', zIndex: 10
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}>
-          <Map size={24} />
-          <span style={{ fontSize: '11px', fontWeight: '600' }}>Jobs</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: 'var(--color-on-surface-variant)' }}>
+        <button 
+          onClick={() => router.push('/rider')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: pathname === '/rider' ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}
+        >
+          <Package size={24} />
+          <span style={{ fontSize: '11px', fontWeight: pathname === '/rider' ? '600' : '500' }}>Jobs</span>
+        </button>
+
+        <button 
+          onClick={() => router.push('/rider/location')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: pathname === '/rider/location' ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}
+        >
+          <Navigation size={24} />
+          <span style={{ fontSize: '11px', fontWeight: pathname === '/rider/location' ? '600' : '500' }}>Location</span>
+        </button>
+
+        <button 
+          onClick={() => router.push('/wallet')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: pathname?.startsWith('/wallet') ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}
+        >
           <CreditCard size={24} />
-          <span style={{ fontSize: '11px', fontWeight: '500' }}>Earnings</span>
-        </div>
+          <span style={{ fontSize: '11px', fontWeight: pathname?.startsWith('/wallet') ? '600' : '500' }}>Earnings</span>
+        </button>
       </nav>
     </div>
   );

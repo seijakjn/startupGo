@@ -14,7 +14,7 @@ function ChangeView({ center, zoom }) {
   return null;
 }
 
-const ButuanMap = ({ center, destination, DEFAULT_CENTER }) => {
+const ButuanMap = ({ center, destination, DEFAULT_CENTER, riders = [] }) => {
   useEffect(() => {
     // Fix Leaflet icons
     delete L.Icon.Default.prototype._getIconUrl;
@@ -24,6 +24,15 @@ const ButuanMap = ({ center, destination, DEFAULT_CENTER }) => {
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
     });
   }, []);
+
+  const riderIcon = typeof window !== 'undefined' ? new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  }) : null;
 
   return (
     <MapContainer center={center} zoom={14} style={{ height: '100%', width: '100%' }} zoomControl={false}>
@@ -39,6 +48,11 @@ const ButuanMap = ({ center, destination, DEFAULT_CENTER }) => {
           <Popup>Drop-off: {destination.name}</Popup>
         </Marker>
       )}
+      {riders && riders.map((rider, idx) => (
+        <Marker key={idx} position={[rider.lat, rider.lon]} icon={riderIcon}>
+          <Popup>Nearby Driver</Popup>
+        </Marker>
+      ))}
       <ChangeView center={center} zoom={15} />
     </MapContainer>
   );

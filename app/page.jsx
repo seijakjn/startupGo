@@ -92,7 +92,7 @@ export default function Home() {
       <div style={{ 
         background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%)',
         borderRadius: 'var(--rounded-xl)',
-        padding: '32px',
+        padding: 'clamp(20px, 5vw, 32px)',
         color: 'white',
         marginBottom: '32px',
         position: 'relative',
@@ -101,7 +101,7 @@ export default function Home() {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <h2 className="text-headline-lg" style={{ color: 'white', marginBottom: '8px' }}>Where to, Butuan?</h2>
           <p className="text-body-lg" style={{ opacity: 0.9, marginBottom: '24px' }}>Your all-in-one super app.</p>
-          <div className="glass" style={{ display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '12px 24px', borderRadius: 'var(--rounded-lg)', border: 'none' }}>
+          <div className="glass" style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', padding: '12px 20px', borderRadius: 'var(--rounded-lg)', border: 'none' }}>
             <Car size={24} color="var(--color-primary)" />
             <div>
               <div className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)' }}>Current Location</div>
@@ -121,30 +121,59 @@ export default function Home() {
             <Activity size={20} color="var(--color-primary)" />
             Active Service
           </h3>
-          <div className="card shadow-level-1" style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '4px solid var(--color-primary)' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--color-surface-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {activeJob.type === 'food' ? <Utensils size={24} color="var(--color-primary)" /> : 
-               activeJob.type === 'parcel' ? <Package size={24} color="var(--color-primary)" /> : 
-               <Car size={24} color="var(--color-primary)" />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="text-label-lg">{activeJob.details?.title || 'Your Request'}</div>
-              <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
-                {activeJob.status === 'pending' ? 'Looking for a rider...' : 
-                 activeJob.status === 'accepted' ? 'Rider has accepted!' : 'In progress...'}
+          <div className="card shadow-level-1" style={{ marginBottom: '32px', borderLeft: '4px solid var(--color-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--color-surface-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {activeJob.type === 'food' ? <Utensils size={24} color="var(--color-primary)" /> : 
+                 activeJob.type === 'parcel' ? <Package size={24} color="var(--color-primary)" /> : 
+                 <Car size={24} color="var(--color-primary)" />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="text-label-lg">{activeJob.details?.title || 'Your Request'}</div>
+                <div className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
+                  {activeJob.status === 'pending' ? 'Looking for a rider...' : 
+                   activeJob.status === 'accepted' ? 'Rider has accepted!' : 'In progress...'}
+                </div>
+              </div>
+              <div className="chip" style={{ backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }}>
+                {activeJob.status.toUpperCase()}
               </div>
             </div>
-            <div className="chip" style={{ backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }}>
-              {activeJob.status.toUpperCase()}
+
+            <div style={{ padding: '16px', backgroundColor: 'var(--color-surface-container-lowest)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)' }}>Tracking ID</span>
+                <span className="text-body-sm" style={{ fontWeight: '600', fontFamily: 'monospace' }}>{activeJob.id.split('-')[0].toUpperCase()}</span>
+              </div>
+              
+              {activeJob.rider_id && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="text-label-sm" style={{ color: 'var(--color-on-surface-variant)' }}>Assigned Rider</span>
+                  <span className="text-body-sm" style={{ fontWeight: '600' }}>Rider #{activeJob.rider_id.substring(0, 5)}</span>
+                </div>
+              )}
+
+              {activeJob.type === 'parcel' && (
+                <button 
+                  onClick={() => router.push(`/parcel?track=${activeJob.id}`)}
+                  className="btn" 
+                  style={{ 
+                    marginTop: '8px', width: '100%', backgroundColor: 'var(--color-surface-container-high)', 
+                    color: 'var(--color-primary)', fontWeight: '600', height: '40px', fontSize: '14px' 
+                  }}
+                >
+                  Track Package Live
+                </button>
+              )}
             </div>
           </div>
         </>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px' }}>
-        <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px' }}>
+        <div style={{ flex: '1 1 400px', minWidth: 0 }}>
           <h3 className="text-headline-sm" style={{ marginBottom: '16px' }}>Services</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '32px' }}>
             {services.map((service, idx) => (
               <Link href={service.path} key={idx} style={{ textDecoration: 'none' }}>
                 <div className="card shadow-level-1" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -159,7 +188,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div>
+        <div style={{ flex: '1 1 300px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 className="text-headline-sm">Recent Activity</h3>
             <Link href="/wallet" style={{ fontSize: '13px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: '600' }}>See All</Link>

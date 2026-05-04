@@ -42,6 +42,17 @@ const SAMPLE_RESTAURANTS = [
   },
 ];
 
+import dynamic from 'next/dynamic';
+
+// Dynamically import Map
+const ButuanMap = dynamic(() => import('../components/ButuanMap'), { 
+  ssr: false,
+  loading: () => <div style={{ height: '200px', width: '100%', backgroundColor: 'var(--color-surface-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
+    <span className="text-body-sm">Loading Butuan Maps...</span>
+  </div>
+});
+
+const DEFAULT_CENTER = [8.9475, 125.5406];
 const BG_COLORS = ['#e0f2fe','#dcfce7','#fef9c3','#fce7f3','#ede9fe'];
 const TEXT_COLORS = ['#0369a1','#166534','#854d0e','#9d174d','#5b21b6'];
 
@@ -53,8 +64,17 @@ export default function FoodPage() {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [cart, setCart] = useState({}); // { itemId: quantity }
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [nearbyRiders, setNearbyRiders] = useState([]);
 
-  useEffect(() => { fetchRestaurants(); }, []);
+  useEffect(() => { 
+    fetchRestaurants();
+    fetchRiders();
+  }, []);
+
+  async function fetchRiders() {
+    const { data } = await supabase.from('rider_locations').select('lat, lon').limit(15);
+    if (data) setNearbyRiders(data);
+  }
 
   async function fetchRestaurants() {
     setLoading(true);
@@ -142,17 +162,17 @@ export default function FoodPage() {
 
           {/* Sticky checkout bar */}
           {cartCount > 0 && (
-            <div style={{ position: 'sticky', bottom: '80px' }}>
+            <div style={{ position: 'sticky', bottom: '24px', zIndex: 100, marginTop: '24px' }}>
               <button
                 className="btn btn-primary"
-                style={{ width: '100%', height: '56px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '24px', paddingRight: '24px' }}
+                style={{ width: '100%', height: '56px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '24px', paddingRight: '24px', boxShadow: '0 8px 32px rgba(var(--color-primary-rgb), 0.3)' }}
                 onClick={() => setPaymentOpen(true)}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShoppingBag size={20} />
-                  {cartCount} item{cartCount > 1 ? 's' : ''} · Place Order
+                  {cartCount} item{cartCount > 1 ? 's' : ''} · Checkout
                 </span>
-                <span>₱{cartTotal.toFixed(2)}</span>
+                <span style={{ fontWeight: '700' }}>₱{cartTotal.toFixed(2)}</span>
               </button>
             </div>
           )}
@@ -241,6 +261,21 @@ export default function FoodPage() {
               )}
             </div>
           )}
+
+          <div style={{ marginTop: '48px' }}>
+            <h3 className="text-headline-sm" style={{ marginBottom: '16px' }}>Ready to Deliver</h3>
+            <div className="shadow-level-1" style={{ position: 'relative', height: '240px', borderRadius: 'var(--rounded-lg)', overflow: 'hidden', zIndex: 1 }}>
+              <ButuanMap center={DEFAULT_CENTER} DEFAULT_CENTER={DEFAULT_CENTER} riders={nearbyRiders} />
+              <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10 }}>
+                <div className="chip" style={{ backgroundColor: 'rgba(255,255,255,0.9)', color: 'var(--color-primary)', fontWeight: '700', fontSize: '11px', backdropFilter: 'blur(4px)' }}>
+                  {nearbyRiders.length} RIDERS ONLINE
+                </div>
+              </div>
+            </div>
+            <p className="text-body-sm" style={{ color: 'var(--color-on-surface-variant)', marginTop: '12px', textAlign: 'center' }}>
+              Riders are stationed across Butuan for the fastest delivery.
+            </p>
+          </div>
         </>
       )}
 

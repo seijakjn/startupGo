@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Wallet, Bell, Sun, Moon, LogIn } from 'lucide-react';
+import { Wallet, Bell, Sun, Moon, LogIn, Menu } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
-const Header = ({ toggleTheme, theme }) => {
+const Header = ({ toggleTheme, theme, toggleSidebar }) => {
   const { user, isSignedIn, isLoaded } = useUser();
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
@@ -72,8 +72,15 @@ const Header = ({ toggleTheme, theme }) => {
 
   return (
     <header className="header">
-      <div className="text-headline-sm" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ color: 'var(--color-primary)' }} className="mobile-only-title">Butuan Go</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button 
+          className="show-on-mobile btn btn-secondary" 
+          onClick={toggleSidebar}
+          style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Menu size={24} />
+        </button>
+        <span style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '18px' }} className="mobile-only-title">Butuan Go</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <button 

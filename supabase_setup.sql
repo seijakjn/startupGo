@@ -3,7 +3,7 @@
 -- 1. Create the jobs table
 CREATE TABLE IF NOT EXISTS public.jobs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    type TEXT NOT NULL CHECK (type IN ('fetch_me', 'food', 'parcel')),
+    type TEXT NOT NULL CHECK (type IN ('fetch_me', 'food', 'parcel', 'rental')),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'in_progress', 'completed', 'cancelled')),
     user_id TEXT NOT NULL, -- Clerk User ID
     rider_id TEXT, -- Clerk Rider ID (nullable until accepted)
